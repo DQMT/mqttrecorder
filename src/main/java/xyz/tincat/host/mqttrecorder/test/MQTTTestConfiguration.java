@@ -38,22 +38,12 @@ public class MQTTTestConfiguration {
     @Value("${mqtt.test.topic}")
     private String topic;
 
-    @Bean
-    public MqttPahoClientFactory mqttClientFactory() {
-        DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
-        MqttConnectOptions options = new MqttConnectOptions();
-        options.setServerURIs(new String[]{serverURI});
-        options.setUserName("username");
-        options.setPassword("password".toCharArray());
-        factory.setConnectionOptions(options);
-        return factory;
-    }
 
     @Bean
     @ServiceActivator(inputChannel = "mqttOutboundChannel")
-    public MessageHandler mqttOutbound() {
+    public MessageHandler mqttOutbound(MqttPahoClientFactory mqttPahoClientFactory) {
         MqttPahoMessageHandler messageHandler =
-                new MqttPahoMessageHandler(clientId + new Date().getTime(), mqttClientFactory());
+                new MqttPahoMessageHandler(clientId + new Date().getTime(), mqttPahoClientFactory);
         messageHandler.setAsync(true);
         messageHandler.setDefaultTopic(topic);
         return messageHandler;

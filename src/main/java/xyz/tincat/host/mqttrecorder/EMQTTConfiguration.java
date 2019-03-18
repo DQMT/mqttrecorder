@@ -1,6 +1,7 @@
 package xyz.tincat.host.mqttrecorder;
 
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -8,6 +9,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.core.MessageProducer;
+import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
+import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
 import org.springframework.integration.mqtt.inbound.MqttPahoMessageDrivenChannelAdapter;
 import org.springframework.integration.mqtt.support.DefaultPahoMessageConverter;
 import org.springframework.messaging.Message;
@@ -33,11 +36,15 @@ public class EMQTTConfiguration {
     @Value("${mqtt.password}")
     private String password;
     @Value("${mqtt.host}")
-    private String serverURI;
+    private String[] serverURIs;
     @Value("${mqtt.clientId}")
     private String clientId;
     @Value("${mqtt.topics}")
     private String[] topics;
+    @Value("${mqtt.maxflight:10000}")
+    private int maxflight;
+    @Value("${mqtt.qos:1}")
+    private int qos;
 
     @Bean
     public MessageChannel mqttInputChannel() {
@@ -45,13 +52,29 @@ public class EMQTTConfiguration {
     }
 
     @Bean
-    public MessageProducer inbound() {
+    public MqttPahoClientFactory mqttClientFactory() {
+        DefaultMqttPahoClientFactory factory = new DefaultMqttPahoClientFactory();
+        MqttConnectOptions options = new MqttConnectOptions();
+        options.setServerURIs(serverURIs);
+        options.setUserName(userName);
+        options.setPassword(password.toCharArray());
+        options.setMaxInflight(maxflight);
+        options.setAutomaticReconnect(true);
+        options.setConnectionTimeout(3);
+        options.setCleanSession(true);
+        options.setKeepAliveInterval(5);
+        factory.setConnectionOptions(options);
+        return factory;
+    }
+
+    @Bean
+    public MessageProducer inbound(MqttPahoClientFactory mqttPahoClientFactory) {
         MqttPahoMessageDrivenChannelAdapter adapter =
-                new MqttPahoMessageDrivenChannelAdapter(serverURI, clientId+new Date().getTime(),
+                new MqttPahoMessageDrivenChannelAdapter(clientId + new Date().getTime(), mqttPahoClientFactory,
                         topics);
         adapter.setCompletionTimeout(5000);
         adapter.setConverter(new DefaultPahoMessageConverter());
-        adapter.setQos(1);
+        adapter.setQos(qos);
         adapter.setOutputChannel(mqttInputChannel());
         return adapter;
     }
