@@ -2,6 +2,7 @@ package xyz.tincat.host.mqttrecorder;
 
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessagingException;
+import xyz.tincat.host.mqttrecorder.metrics.MetricsProxy;
 
 import java.util.Date;
 
@@ -45,6 +47,8 @@ public class EMQTTConfiguration {
     private int maxflight;
     @Value("${mqtt.qos:1}")
     private int qos;
+    @Autowired
+    private MetricsProxy metricsProxy;
 
     @Bean
     public MessageChannel mqttInputChannel() {
@@ -87,6 +91,7 @@ public class EMQTTConfiguration {
             @Override
             public void handleMessage(Message<?> message) throws MessagingException {
                 log.info((String) message.getPayload());
+                metricsProxy.mark();
             }
         };
     }
