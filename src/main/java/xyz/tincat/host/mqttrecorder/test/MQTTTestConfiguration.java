@@ -1,21 +1,22 @@
 package xyz.tincat.host.mqttrecorder.test;
 
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.annotation.MessagingGateway;
 import org.springframework.integration.annotation.ServiceActivator;
-import org.springframework.integration.channel.DirectChannel;
-import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
+import org.springframework.integration.channel.ExecutorChannel;
 import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
 import org.springframework.integration.mqtt.outbound.MqttPahoMessageHandler;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
 import java.util.Date;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @ Date       ：Created in 11:31 2019/3/15
@@ -51,7 +52,13 @@ public class MQTTTestConfiguration {
 
     @Bean
     public MessageChannel mqttOutboundChannel() {
-        return new DirectChannel();
+        int cores = Runtime.getRuntime().availableProcessors();
+        return new ExecutorChannel(
+                new ThreadPoolExecutor(cores + 1,
+                        (cores + 1),
+                        60,
+                        TimeUnit.SECONDS,
+                        new LinkedBlockingQueue<>()));
     }
 
     @MessagingGateway(defaultRequestChannel = "mqttOutboundChannel")

@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.annotation.ServiceActivator;
-import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.channel.ExecutorChannel;
 import org.springframework.integration.core.MessageProducer;
 import org.springframework.integration.mqtt.core.DefaultMqttPahoClientFactory;
 import org.springframework.integration.mqtt.core.MqttPahoClientFactory;
@@ -21,6 +21,9 @@ import org.springframework.messaging.MessagingException;
 import xyz.tincat.host.mqttrecorder.metrics.MetricsProxy;
 
 import java.util.Date;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @ Description：
@@ -52,7 +55,13 @@ public class EMQTTConfiguration {
 
     @Bean
     public MessageChannel mqttInputChannel() {
-        return new DirectChannel();
+        int cores = Runtime.getRuntime().availableProcessors();
+        return new ExecutorChannel(
+                new ThreadPoolExecutor(cores + 1,
+                        (cores + 1),
+                        60,
+                        TimeUnit.SECONDS,
+                        new LinkedBlockingQueue<>()));
     }
 
     @Bean
@@ -85,9 +94,8 @@ public class EMQTTConfiguration {
 
     @Bean
     @ServiceActivator(inputChannel = "mqttInputChannel")
-    public MessageHandler handler() {
+    public MessageHandler handler(MqttPahoClientFactory mqttPahoClientFactory) {
         return new MessageHandler() {
-
             @Override
             public void handleMessage(Message<?> message) throws MessagingException {
                 log.info((String) message.getPayload());

@@ -25,19 +25,19 @@ public class MQTTTestSender implements CommandLineRunner {
 
 
     public static Thread sendForever(MQTTTestConfiguration.MyGateway gateway) {
-       return new Thread(() -> {
+        return new Thread(() -> {
 
-           while (true) {
+            while (true) {
                 String msg = UUID.randomUUID().toString();
                 gateway.sendToMqtt(msg);
                 log.info(msg);
                 try {
-                    Thread.sleep(1000L);
+                    Thread.sleep(1L);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-        },"testSenderForeverThread");
+        }, "testSenderForeverThread");
     }
 
     @Override
