@@ -3,6 +3,7 @@ package xyz.tincat.host.mqttrecorder.metrics;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Slf4jReporter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -34,12 +35,19 @@ public class MetricsConfiguration {
 
     @Bean
     public ConsoleReporter consoleReporter(MetricRegistry metrics) {
-        ConsoleReporter reporter =  ConsoleReporter.forRegistry(metrics).build();
+        ConsoleReporter reporter = ConsoleReporter.forRegistry(metrics).build();
         reporter.start(metricsInterval, TimeUnit.SECONDS);
         return reporter;
     }
 
-    public Counter msgCounter(MetricRegistry metrics){
+    @Bean
+    public Slf4jReporter slf4jReporter(MetricRegistry metrics) {
+        Slf4jReporter reporter = Slf4jReporter.forRegistry(metrics).build();
+        reporter.start(metricsInterval, TimeUnit.SECONDS);
+        return reporter;
+    }
+
+    public Counter msgCounter(MetricRegistry metrics) {
         return metrics.counter(name(MetricsConfiguration.class, "msg-counter"));
     }
 
